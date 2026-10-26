@@ -1,0 +1,134 @@
+{
+  "Bamboo Grass": {
+    "thai_name": "ย่านาง",
+    "common_name": "Bamboo Grass",
+    "scientific_name": "Tiliacora triandra",
+    "kingdom": "Plantae",
+    "family": "Menispermaceae",
+    "genus": "Tiliacora",
+    "species": "Tiliacora triandra",
+    "taxonomy_status": "verified_initial",
+    "note": "Confirmed with dataset images as Ya-nang."
+  },
+  "Betel Vine": {
+    "thai_name": "พลู",
+    "common_name": "Betel Vine",
+    "scientific_name": "Piper betle",
+    "kingdom": "Plantae",
+    "family": "Piperaceae",
+    "genus": "Piper",
+    "species": "Piper betle",
+    "taxonomy_status": "verified_initial",
+    "note": ""
+  },
+  "Hairy Basil": {
+    "thai_name": "แมงลัก",
+    "common_name": "Hairy Basil",
+    "scientific_name": "Ocimum americanum",
+    "kingdom": "Plantae",
+    "family": "Lamiaceae",
+    "genus": "Ocimum",
+    "species": "Ocimum americanum",
+    "taxonomy_status": "verified_initial",
+    "note": "Thai class confirmed as Maenglak / Hairy Basil."
+  },
+  "Holy Basil": {
+    "thai_name": "กะเพรา",
+    "common_name": "Holy Basil",
+    "scientific_name": "Ocimum tenuiflorum",
+    "kingdom": "Plantae",
+    "family": "Lamiaceae",
+    "genus": "Ocimum",
+    "species": "Ocimum tenuiflorum",
+    "taxonomy_status": "verified_initial",
+    "note": ""
+  },
+  "Kaffer Lime": {
+    "thai_name": "มะกรูด",
+    "common_name": "Kaffer Lime",
+    "scientific_name": "Citrus hystrix",
+    "kingdom": "Plantae",
+    "family": "Rutaceae",
+    "genus": "Citrus",
+    "species": "Citrus hystrix",
+    "taxonomy_status": "verified_initial",
+    "note": "Also commonly called kaffir lime / Thai lime."
+  },
+  "Kitchen Mint": {
+    "thai_name": "สะระแหน่",
+    "common_name": "Kitchen Mint",
+    "scientific_name": "Mentha cordifolia",
+    "kingdom": "Plantae",
+    "family": "Lamiaceae",
+    "genus": "Mentha",
+    "species": "Mentha cordifolia",
+    "taxonomy_status": "verified_initial",
+    "note": "Confirmed with dataset images as Thai kitchen mint / Sa-ra-nae."
+  },
+  "Laurel Clockvine": {
+    "thai_name": "รางจืด",
+    "common_name": "Laurel Clockvine",
+    "scientific_name": "Thunbergia laurifolia",
+    "kingdom": "Plantae",
+    "family": "Acanthaceae",
+    "genus": "Thunbergia",
+    "species": "Thunbergia laurifolia",
+    "taxonomy_status": "verified_initial",
+    "note": ""
+  },
+  "Mitragyna Speciosa": {
+    "thai_name": "กระท่อม",
+    "common_name": "Mitragyna Speciosa",
+    "scientific_name": "Mitragyna speciosa",
+    "kingdom": "Plantae",
+    "family": "Rubiaceae",
+    "genus": "Mitragyna",
+    "species": "Mitragyna speciosa",
+    "taxonomy_status": "verified_initial",
+    "note": ""
+  },
+  "Siam Weed": {
+    "thai_name": "สาบเสือ",
+    "common_name": "Siam Weed",
+    "scientific_name": "Chromolaena odorata",
+    "kingdom": "Plantae",
+    "family": "Asteraceae",
+    "genus": "Chromolaena",
+    "species": "Chromolaena odorata",
+    "taxonomy_status": "verified_initial",
+    "note": ""
+  },
+  "Siamese Neem": {
+    "thai_name": "สะเดาไทย",
+    "common_name": "Siamese Neem",
+    "scientific_name": "Azadirachta indica var. siamensis",
+    "kingdom": "Plantae",
+    "family": "Meliaceae",
+    "genus": "Azadirachta",
+    "species": "Azadirachta indica var. siamensis",
+    "taxonomy_status": "verified_initial",
+    "note": "Variety-level name; display as variety if keeping full taxonomy."
+  },
+  "Tiger Herbal": {
+    "thai_name": "บัวบก",
+    "common_name": "Tiger Herbal",
+    "scientific_name": "Centella asiatica",
+    "kingdom": "Plantae",
+    "family": "Apiaceae",
+    "genus": "Centella",
+    "species": "Centella asiatica",
+    "taxonomy_status": "verified_initial",
+    "note": "Also known as Asiatic pennywort."
+  },
+  "Wildbetal Leafbush": {
+    "thai_name": "ชะพลู",
+    "common_name": "Wildbetal Leafbush",
+    "scientific_name": "Piper sarmentosum",
+    "kingdom": "Plantae",
+    "family": "Piperaceae",
+    "genus": "Piper",
+    "species": "Piper sarmentosum",
+    "taxonomy_status": "verified_initial",
+    "note": ""
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "Bamboo Grass": {
+    "thai_name": "ย่านาง",
+    "features": [
+      "ใบเดี่ยว รูปไข่ รูปรี หรือรูปหอก",
+      "ขอบใบเรียบ ปลายใบอาจเรียวแหลม",
+      "เส้นใบหลายเส้นเด่นจากบริเวณใกล้โคนใบ"
+    ],
+    "source_title": "ตำรามาตรฐานยาสมุนไพรไทย — กรมวิทยาศาสตร์การแพทย์",
+    "source_url": "https://bdn-thp.dmsc.moph.go.th/ebook/qQqcBKtkpR9gC3q0GT5gMJq0qT5co3uw",
+    "explanation_type": "botanical_reference"
+  },
+  "Betel Vine": {
+    "thai_name": "พลู",
+    "features": [
+      "ใบเดี่ยว รูปไข่ค่อนข้างกว้าง",
+      "โคนใบเว้าคล้ายรูปหัวใจ ปลายใบเรียวแหลม",
+      "ขอบใบเรียบ ผิวใบมักเรียบ"
+    ],
+    "source_title": "ตำรามาตรฐานยาสมุนไพรไทย — กรมวิทยาศาสตร์การแพทย์",
+    "source_url": "https://bdn-thp.dmsc.moph.go.th/ebook/qQScZUtkpR9gC3q0GT5gMJq0qT5co3uw",
+    "explanation_type": "botanical_reference"
+  },
+  "Hairy Basil": {
+    "thai_name": "แมงลัก",
+    "features": [
+      "ใบเดี่ยว รูปไข่แคบหรือรูปหอก",
+      "ปลายใบแหลม ขอบใบเรียบจนถึงหยักตื้น",
+      "อาจพบขนละเอียดโดยเฉพาะตามเส้นใบ"
+    ],
+    "source_title": "Plants of the World Online — Royal Botanic Gardens, Kew",
+    "source_url": "https://powo.science.kew.org/taxon/urn:lsid:ipni.org:names:316218-2/general-information",
+    "explanation_type": "botanical_reference"
+  },
+  "Holy Basil": {
+    "thai_name": "กะเพรา",
+    "features": [
+      "ใบเดี่ยว รูปไข่ถึงรูปรี",
+      "ขอบใบมักเป็นคลื่นหรือหยักฟันเลื่อย",
+      "ผิวใบและก้านใบอาจมีขนละเอียด"
+    ],
+    "source_title": "JIRCAS — Thai Vegetable Database",
+    "source_url": "https://www.jircas.go.jp/en/database/thaivege/079",
+    "explanation_type": "botanical_reference"
+  },
+  "Kaffer Lime": {
+    "thai_name": "มะกรูด",
+    "features": [
+      "แผ่นใบรูปไข่ถึงรูปขอบขนาน",
+      "ก้านใบแผ่เป็นปีกกว้าง จนดูคล้ายใบสองตอนต่อกัน",
+      "ใบมักมีสีเขียวเข้มและผิวค่อนข้างหนา"
+    ],
+    "source_title": "MSU Herbal Garden — Citrus hystrix",
+    "source_url": "https://www.msu.edu.my/msu-herbal-monograph/citrus-hystrix.php",
+    "explanation_type": "botanical_reference"
+  },
+  "Kitchen Mint": {
+    "thai_name": "สะระแหน่",
+    "features": [
+      "ใบเดี่ยว รูปไข่ค่อนข้างกว้าง",
+      "ขอบใบหยักฟันเลื่อย",
+      "ผิวใบอาจย่นหรือมีลายเส้นใบเห็นได้ชัด"
+    ],
+    "source_title": "หอสมุดมหาวิทยาลัยเชียงใหม่ — พืชอาหารล้านนา",
+    "source_url": "https://lannainfo.library.cmu.ac.th/en_lannafood/detail_ingredient.php?id_ingredient=243",
+    "explanation_type": "botanical_reference"
+  },
+  "Laurel Clockvine": {
+    "thai_name": "รางจืด",
+    "features": [
+      "ใบเดี่ยว รูปไข่ถึงรูปขอบขนาน",
+      "ปลายใบแหลม ขอบใบมักเรียบหรือหยักเล็กน้อย",
+      "มักเห็นเส้นใบหลัก 3–5 เส้นจากใกล้โคนใบ"
+    ],
+    "source_title": "ตำรามาตรฐานยาสมุนไพรไทย — กรมวิทยาศาสตร์การแพทย์",
+    "source_url": "https://bdn-thp.dmsc.moph.go.th/ebook/qQOcZKtkpR9gC3q0GT5gMJq0qT5co3uw",
+    "explanation_type": "botanical_reference"
+  },
+  "Mitragyna Speciosa": {
+    "thai_name": "กระท่อม",
+    "features": [
+      "ใบเดี่ยว รูปไข่ถึงรูปรี ปลายเรียวแหลม",
+      "ขอบใบเรียบ ผิวใบอาจดูมัน",
+      "เส้นใบแขนงจำนวนมากเรียงจากเส้นกลางใบ โดยมักพบประมาณ 12–17 คู่"
+    ],
+    "source_title": "Plants (MDPI) — Mitragyna speciosa morphology",
+    "source_url": "https://www.mdpi.com/2223-7747/12/4/949",
+    "explanation_type": "botanical_reference"
+  },
+  "Siam Weed": {
+    "thai_name": "สาบเสือ",
+    "features": [
+      "ใบเดี่ยว รูปสามเหลี่ยมหรือรูปไข่",
+      "ปลายใบแหลม ขอบใบหยัก",
+      "ใบที่ติดกับกิ่งมักออกเป็นคู่ตรงข้าม"
+    ],
+    "source_title": "Lucidcentral — Chromolaena odorata",
+    "source_url": "https://keyserver.lucidcentral.org/weeds/data/media/Html/chromolaena_odorata.htm",
+    "explanation_type": "botanical_reference"
+  },
+  "Siamese Neem": {
+    "thai_name": "สะเดาไทย",
+    "features": [
+      "เป็นใบประกอบแบบขนนก มีใบย่อยหลายคู่",
+      "ใบย่อยรูปร่างค่อนข้างยาว ปลายแหลม",
+      "ขอบใบย่อยมีหยักฟันเลื่อย"
+    ],
+    "source_title": "ตำรามาตรฐานยาสมุนไพรไทย — กรมวิทยาศาสตร์การแพทย์",
+    "source_url": "https://bdn-thp.dmsc.moph.go.th/ebook/qQIcAatlpR9gC3q0GT5gMJq0qT5co3uw",
+    "explanation_type": "botanical_reference"
+  },
+  "Tiger Herbal": {
+    "thai_name": "บัวบก",
+    "features": [
+      "แผ่นใบค่อนข้างกลมหรือรูปไต",
+      "โคนใบเว้า ขอบใบหยักมน",
+      "เส้นใบแผ่ออกจากจุดใกล้โคนใบคล้ายรูปพัด"
+    ],
+    "source_title": "Plants of the World Online — Royal Botanic Gardens, Kew",
+    "source_url": "https://powo.science.kew.org/taxon/urn:lsid:ipni.org:names:1197718-2/general-information",
+    "explanation_type": "botanical_reference"
+  },
+  "Wildbetal Leafbush": {
+    "thai_name": "ชะพลู",
+    "features": [
+      "ใบเดี่ยว รูปไข่ค่อนข้างกว้างหรือเกือบกลม",
+      "โคนใบเว้าคล้ายหัวใจ ขอบใบเรียบหรือเป็นคลื่นเล็กน้อย",
+      "เส้นใบหลักหลายเส้นแผ่จากใกล้โคนใบ"
+    ],
+    "source_title": "ตำรามาตรฐานยาสมุนไพรไทย — กรมวิทยาศาสตร์การแพทย์",
+    "source_url": "https://bdn-thp.dmsc.moph.go.th/ebook/nGW4BUOCoG93qRkhoJIaqUEhnJ94LjWewEb3QWewEb3Q",
+    "explanation_type": "botanical_reference"
+  }
+}

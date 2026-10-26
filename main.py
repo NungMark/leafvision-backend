@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from PIL import Image
+from fastapi.responses import JSONResponse
+from gradcam_utils import LeafVisionGradCAM
 import tensorflow as tf
 import numpy as np
 import json
@@ -21,22 +23,38 @@ from datetime import datetime, timedelta
 # =========================
 
 IMG_SIZE = 224
-MODEL_ACCURACY = 85.5
+MODEL_ACCURACY = 98.92  # Internal Test v12 (459/464); NOT External accuracy
+EXTERNAL_TEST_ACCURACY = 48.72  # External Test v12 (57/117)
+MODEL_VERSION = "v12"
 CONFIDENCE_THRESHOLD = 60.0
 
-MODEL_PATH = "model/plant_leaf_model_finetuned.keras"
+MODEL_PATH = os.getenv("MODEL_PATH", "model/leafvision_model_v12.keras")
 CLASS_NAMES_PATH = "model/class_names.json"
+TAXONOMY_PATH = "taxonomy_mapping.json"
+LEAF_FEATURES_PATH = "leaf_features.json"
+GRADCAM_ENABLED = os.getenv("GRADCAM_ENABLED", "1").lower() in ("1", "true", "yes")
+GRADCAM_MAX_FILE_BYTES = 8 * 1024 * 1024
 
-DB_PATH = "prediction_logs.db"
-UPLOAD_DIR = "uploads"
+DB_PATH = os.getenv("DB_PATH", "prediction_logs.db")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_KEY_FOR_LEAFVISION_AI")
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if APP_ENV == "production" and (len(SECRET_KEY) < 32 or SECRET_KEY.startswith("CHANGE_THIS")
+    or SECRET_KEY.startswith("REPLACE_")
+    or SECRET_KEY == "LOCAL_DEV_ONLY_NOT_FOR_PRODUCTION"):
+    raise RuntimeError("Production requires a unique SECRET_KEY with at least 32 characters")
+if not SECRET_KEY:
+    # Development only; NEVER use this value on publicly accessible services.
+    SECRET_KEY = "LOCAL_DEV_ONLY_NOT_FOR_PRODUCTION"
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
+os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # =========================
@@ -46,7 +64,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app = FastAPI(
     title="Plant Leaf Identification API",
     description="API สำหรับจำแนกชนิดพืชจากภาพใบไม้ด้วย MobileNetV2 Fine-tuned Model",
-    version="4.1.0",
+    version="4.2.0-v12",
 )
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
@@ -136,6 +154,7 @@ def init_database():
     add_column_if_not_exists(cursor, "prediction_logs", "image_url", "TEXT")
     add_column_if_not_exists(cursor, "prediction_logs", "user_id", "INTEGER")
     add_column_if_not_exists(cursor, "prediction_logs", "username", "TEXT")
+    add_column_if_not_exists(cursor, "prediction_logs", "taxonomy_json", "TEXT")
 
     add_column_if_not_exists(cursor, "prediction_logs", "verified_status", "TEXT DEFAULT 'pending'")
     add_column_if_not_exists(cursor, "prediction_logs", "actual_class", "TEXT")
@@ -168,7 +187,12 @@ def init_database():
     user_count = cursor.fetchone()[0]
 
     if user_count == 0:
-        default_password = "admin12345"
+        # Never boot a public new database with a known administrative password.
+        default_password = os.getenv("INITIAL_ADMIN_PASSWORD", "").strip()
+        if APP_ENV == "production" and len(default_password) < 12:
+            raise RuntimeError("Initial production admin requires INITIAL_ADMIN_PASSWORD (12+ characters)")
+        if not default_password:
+            default_password = "admin12345"  # Development only. Change before use.
         password_hash = pwd_context.hash(default_password)
 
         cursor.execute(
@@ -193,10 +217,8 @@ def init_database():
             ),
         )
 
-        print("✅ Default admin created")
+        print("Default admin created (set INITIAL_ADMIN_PASSWORD in production)")
         print("username: admin")
-        print("email: admin@leafvision.local")
-        print("password: admin12345")
     else:
         cursor.execute(
             """
@@ -222,6 +244,7 @@ def insert_prediction_log(
     display_name: str,
     confidence: float,
     top3: list,
+    taxonomy: dict,
     processing_time_seconds: float,
     user_id: int,
     username: str,
@@ -241,6 +264,7 @@ def insert_prediction_log(
             display_name,
             confidence,
             top3_json,
+            taxonomy_json,
             model_accuracy,
             confidence_threshold,
             processing_time_seconds,
@@ -248,7 +272,7 @@ def insert_prediction_log(
             user_id,
             username
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             filename,
@@ -260,6 +284,7 @@ def insert_prediction_log(
             display_name,
             confidence,
             json.dumps(top3, ensure_ascii=False),
+            json.dumps(taxonomy, ensure_ascii=False),
             MODEL_ACCURACY,
             CONFIDENCE_THRESHOLD,
             processing_time_seconds,
@@ -271,6 +296,7 @@ def insert_prediction_log(
 
     conn.commit()
     conn.close()
+
 
 
 init_database()
@@ -489,15 +515,92 @@ with open(CLASS_NAMES_PATH, "r", encoding="utf-8") as f:
 if isinstance(class_names, dict):
     class_names = [class_names[str(i)] for i in range(len(class_names))]
 
+# Important: model index order must match class_names.json, and input/output must match v12.
+EXPECTED_CLASS_NAMES = [
+    "Bamboo Grass", "Betel Vine", "Hairy Basil", "Holy Basil",
+    "Kaffer Lime", "Kitchen Mint", "Laurel Clockvine",
+    "Mitragyna Speciosa", "Siam Weed", "Siamese Neem",
+    "Tiger Herbal", "Wildbetal Leafbush",
+]
+if class_names != EXPECTED_CLASS_NAMES:
+    raise RuntimeError("Class names/order mismatches the v12 model training index order")
+if tuple(model.input_shape[1:]) != (224, 224, 3):
+    raise RuntimeError(f"Unexpected v12 model input: {model.input_shape}")
+if int(model.output_shape[-1]) != len(class_names):
+    raise RuntimeError(f"Model output {model.output_shape[-1]} does not match {len(class_names)} classes")
+
+if not os.path.exists(TAXONOMY_PATH):
+    raise FileNotFoundError(f"ไม่พบไฟล์ taxonomy mapping ที่: {TAXONOMY_PATH}")
+
+with open(TAXONOMY_PATH, "r", encoding="utf-8") as f:
+    taxonomy_mapping = json.load(f)
+
+missing_taxonomy = sorted(set(class_names) - set(taxonomy_mapping))
+if missing_taxonomy:
+    raise RuntimeError(f"Missing taxonomy entries: {missing_taxonomy}")
+
+# Explanatory reference data: morphological traits, NOT model-attribution to the uploaded image.
+with open(LEAF_FEATURES_PATH, "r", encoding="utf-8") as f:
+    leaf_features_mapping = json.load(f)
+
+missing_leaf_features = sorted(set(class_names) - set(leaf_features_mapping))
+if missing_leaf_features:
+    raise RuntimeError(f"Missing leaf reference features: {missing_leaf_features}")
+
+# Grad-CAM initialization is optional. Failure here must not disable predictions.
+gradcam_engine = None
+gradcam_init_error = None
+if GRADCAM_ENABLED:
+    try:
+        gradcam_engine = LeafVisionGradCAM(model)
+    except Exception as exc:
+        gradcam_init_error = f"{type(exc).__name__}: {exc}"
+        print("⚠️ Grad-CAM disabled:", gradcam_init_error)
+
 print("✅ Model loaded successfully")
 print(f"✅ Model path: {MODEL_PATH}")
 print(f"✅ Number of classes: {len(class_names)}")
 print("✅ Classes:", class_names)
+print(f"✅ Taxonomy mapping loaded: {TAXONOMY_PATH}")
+print(f"✅ Taxonomy classes: {len(taxonomy_mapping)}")
 print(f"✅ SQLite log database: {DB_PATH}")
 
 # =========================
 # Helper Functions
 # =========================
+
+def get_taxonomy_info(class_name: str):
+    return taxonomy_mapping.get(
+        class_name,
+        {
+            "thai_name": "",
+            "common_name": class_name,
+            "scientific_name": "",
+            "kingdom": "Plantae",
+            "family": "",
+            "genus": "",
+            "species": "",
+            "taxonomy_status": "missing",
+            "note": "Taxonomy information not found.",
+        },
+    )
+
+
+def parse_log_item(row):
+    item = dict(row)
+
+    try:
+        item["top3"] = json.loads(item.pop("top3_json") or "[]")
+    except Exception:
+        item["top3"] = []
+
+    try:
+        item["taxonomy"] = json.loads(item.pop("taxonomy_json") or "{}")
+    except Exception:
+        item["taxonomy"] = {}
+
+    return item
+
 
 def validate_image_file(file: UploadFile):
     allowed_types = [
@@ -545,11 +648,16 @@ def preprocess_image(image_bytes: bytes):
             detail="ไม่สามารถอ่านไฟล์ภาพได้ กรุณาอัปโหลดภาพใหม่",
         )
 
-    image = image.resize((IMG_SIZE, IMG_SIZE))
+    image = image.resize((IMG_SIZE, IMG_SIZE), resample=Image.Resampling.BILINEAR)
     image_array = np.array(image).astype("float32")
     image_array = np.expand_dims(image_array, axis=0)
 
     return image_array
+
+
+def get_leaf_characteristics(class_name: str):
+    """Species reference only; not image-specific evidence from MobileNetV2."""
+    return leaf_features_mapping.get(class_name)
 
 
 def get_top_predictions(predictions, top_k=3):
@@ -558,14 +666,19 @@ def get_top_predictions(predictions, top_k=3):
     top_predictions = []
 
     for index in top_indices:
+        class_name = class_names[index]
+        taxonomy_info = get_taxonomy_info(class_name)
+
         top_predictions.append(
             {
-                "name": class_names[index],
+                "name": class_name,
                 "confidence": round(float(predictions[index]) * 100, 2),
+                "taxonomy": taxonomy_info,
             }
         )
 
     return top_predictions
+
 
 
 def predict_image_from_bytes(
@@ -593,6 +706,7 @@ def predict_image_from_bytes(
 
     top3 = get_top_predictions(predictions, top_k=3)
     best_prediction = top3[0]
+    best_taxonomy = best_prediction.get("taxonomy", {})
     processing_time = round(time.time() - start_time, 3)
 
     if best_prediction["confidence"] < CONFIDENCE_THRESHOLD:
@@ -601,9 +715,14 @@ def predict_image_from_bytes(
             "prediction": "Unknown",
             "display_name": "ไม่สามารถระบุชนิดพืชได้อย่างมั่นใจ",
             "confidence": best_prediction["confidence"],
+            "taxonomy": {},
+            "leaf_characteristics": None,
             "message": "โมเดลยังไม่มั่นใจพอ กรุณาอัปโหลดภาพใบไม้ที่ชัดเจนขึ้น ถ่ายเฉพาะใบ และลดฉากหลังรบกวน",
             "top3": top3,
             "model_accuracy": MODEL_ACCURACY,
+            "model_version": MODEL_VERSION,
+            "internal_test_accuracy": MODEL_ACCURACY,
+            "external_test_accuracy": EXTERNAL_TEST_ACCURACY,
             "confidence_threshold": CONFIDENCE_THRESHOLD,
             "processing_time_seconds": processing_time,
         }
@@ -613,9 +732,14 @@ def predict_image_from_bytes(
             "prediction": best_prediction["name"],
             "display_name": best_prediction["name"],
             "confidence": best_prediction["confidence"],
+            "taxonomy": best_taxonomy,
+            "leaf_characteristics": get_leaf_characteristics(best_prediction["name"]),
             "message": "ทำนายสำเร็จ",
             "top3": top3,
             "model_accuracy": MODEL_ACCURACY,
+            "model_version": MODEL_VERSION,
+            "internal_test_accuracy": MODEL_ACCURACY,
+            "external_test_accuracy": EXTERNAL_TEST_ACCURACY,
             "confidence_threshold": CONFIDENCE_THRESHOLD,
             "processing_time_seconds": processing_time,
         }
@@ -632,12 +756,14 @@ def predict_image_from_bytes(
         display_name=response["display_name"],
         confidence=response["confidence"],
         top3=response["top3"],
+        taxonomy=response.get("taxonomy", {}),
         processing_time_seconds=response["processing_time_seconds"],
         user_id=current_user["id"],
         username=current_user["username"],
     )
 
     return response
+
 
 # =========================
 # Routes
@@ -647,7 +773,7 @@ def predict_image_from_bytes(
 def home():
     return {
         "message": "Plant Leaf AI Backend is running",
-        "version": "4.1.0",
+        "version": "4.2.0-v12",
         "features": [
             "register",
             "login with username or email",
@@ -659,8 +785,13 @@ def home():
             "prediction logs with uploaded images",
             "JWT authentication",
             "low confidence handling",
+            "taxonomy-aware prediction",
+            "taxonomy information in prediction results",
         ],
-        "model": "plant_leaf_model_finetuned.keras",
+        "model": os.path.basename(MODEL_PATH),
+        "model_version": MODEL_VERSION,
+        "internal_test_accuracy": MODEL_ACCURACY,
+        "external_test_accuracy": EXTERNAL_TEST_ACCURACY,
         "model_accuracy": MODEL_ACCURACY,
         "confidence_threshold": CONFIDENCE_THRESHOLD,
         "number_of_classes": len(class_names),
@@ -674,11 +805,18 @@ def health_check():
         "status": "ok",
         "model_loaded": True,
         "model_path": MODEL_PATH,
+        "model_version": MODEL_VERSION,
+        "model_input_shape": list(model.input_shape),
+        "model_output_classes": int(model.output_shape[-1]),
         "class_names_loaded": True,
         "number_of_classes": len(class_names),
+        "taxonomy_mapping_loaded": True,
+        "taxonomy_classes": len(taxonomy_mapping),
         "database": DB_PATH,
         "uploads": UPLOAD_DIR,
+        "gradcam_available": gradcam_engine is not None,
     }
+
 
 
 @app.post("/auth/register")
@@ -1011,6 +1149,44 @@ async def predict(
     return predict_image_from_bytes(file, image_bytes, current_user)
 
 
+@app.post("/explain/gradcam")
+async def explain_gradcam(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    """On-demand class activation overlay; does not persist images/logs.
+
+    Re-infers top-1 using exactly the v12 model. Secured with the same JWT
+    as /predict and deliberately isolated so failures never block prediction.
+    """
+    del current_user  # Authorization is enforced by Depends.
+    if not GRADCAM_ENABLED or gradcam_engine is None:
+        raise HTTPException(status_code=503, detail="Grad-CAM is not available on this server")
+    validate_image_file(file)
+    image_bytes = await file.read(GRADCAM_MAX_FILE_BYTES + 1)
+    if not image_bytes or len(image_bytes) > GRADCAM_MAX_FILE_BYTES:
+        raise HTTPException(status_code=413, detail="Grad-CAM accepts images up to 8 MB")
+
+    image_array = preprocess_image(image_bytes)
+    try:
+        generated = gradcam_engine.generate(image_array, image_bytes)
+    except Exception as exc:
+        # Do not expose TensorFlow stack traces or filesystem paths to clients.
+        print(f"Grad-CAM failed: {type(exc).__name__}: {exc}")
+        raise HTTPException(status_code=503, detail="ไม่สามารถสร้าง Grad-CAM สำหรับภาพนี้ได้") from exc
+
+    class_index = generated.pop("class_index")
+    result = {
+        "model_version": MODEL_VERSION,
+        "class_name": class_names[class_index],
+        "thai_name": get_taxonomy_info(class_names[class_index]).get("thai_name", ""),
+        "confidence": generated.pop("confidence"),
+        "explanation_method": "Grad-CAM (visual attribution, not leaf-trait recognition)",
+        **generated,
+    }
+    return JSONResponse(result, headers={"Cache-Control": "no-store"})
+
+
 @app.post("/predict-batch")
 async def predict_batch(
     files: list[UploadFile] = File(...),
@@ -1053,6 +1229,36 @@ async def predict_batch(
     }
 
 
+
+@app.get("/plants")
+def get_plants():
+    plants = []
+
+    for class_name, taxonomy in taxonomy_mapping.items():
+        plants.append({
+            "class_name": class_name,
+            **taxonomy
+        })
+
+    plants = sorted(plants, key=lambda item: item.get("class_name", ""))
+
+    return {
+        "total": len(plants),
+        "plants": plants
+    }
+
+
+@app.get("/plants/{class_name}")
+def get_plant_detail(class_name: str):
+    if class_name not in taxonomy_mapping:
+        raise HTTPException(status_code=404, detail="Plant class not found")
+
+    return {
+        "class_name": class_name,
+        **taxonomy_mapping[class_name]
+    }
+
+
 @app.get("/logs")
 def get_logs(
     limit: int = 50,
@@ -1075,22 +1281,13 @@ def get_logs(
     rows = cursor.fetchall()
     conn.close()
 
-    logs = []
-
-    for row in rows:
-        item = dict(row)
-
-        try:
-            item["top3"] = json.loads(item.pop("top3_json"))
-        except Exception:
-            item["top3"] = []
-
-        logs.append(item)
+    logs = [parse_log_item(row) for row in rows]
 
     return {
         "total": len(logs),
         "logs": logs,
     }
+
 
 
 @app.get("/logs/summary")
@@ -1186,22 +1383,13 @@ def get_verifier_logs(
     rows = cursor.fetchall()
     conn.close()
 
-    logs = []
-
-    for row in rows:
-        item = dict(row)
-
-        try:
-            item["top3"] = json.loads(item.pop("top3_json"))
-        except Exception:
-            item["top3"] = []
-
-        logs.append(item)
+    logs = [parse_log_item(row) for row in rows]
 
     return {
         "total": len(logs),
         "logs": logs,
     }
+
 
 @app.patch("/verifier/logs/{log_id}/review")
 def review_prediction_log(
@@ -1293,12 +1481,7 @@ def review_prediction_log(
         (log_id,),
     )
 
-    updated_log = dict(cursor.fetchone())
-
-    try:
-        updated_log["top3"] = json.loads(updated_log.pop("top3_json"))
-    except Exception:
-        updated_log["top3"] = []
+    updated_log = parse_log_item(cursor.fetchone())
 
     conn.close()
 
